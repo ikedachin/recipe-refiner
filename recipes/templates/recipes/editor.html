@@ -1,0 +1,44 @@
+{% extends 'recipes/base.html' %}
+{% load static %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">A LITTLE CHANGE, A BETTER RECIPE</div><h1>{% if recipe %}ひと皿の続きを、つくろう。{% else %}いつものレシピを、今の気分に。{% endif %}</h1><p>材料も、人数も、調理方法も。変えたいことを、あなたの言葉で。</p></div><span class="heading-art" aria-hidden="true"><svg><use href="#i-leaf"/></svg></span></div>
+{% if recipe %}
+<section class="history-strip" aria-label="レシピの履歴">
+  <div class="history-title"><strong>{{ recipe.title }}</strong><button type="button" class="favorite-button" data-favorite-id="{{ recipe.pk }}" aria-pressed="{{ recipe.is_favorite|yesno:'true,false' }}" aria-label="お気に入りを切り替え">{% if recipe.is_favorite %}★{% else %}☆{% endif %}</button><span class="muted">履歴から選んで、再リファインできます</span></div>
+  <div class="revision-tabs"><a class="revision-tab {% if not selected %}selected{% endif %}" href="?revision=original">Original</a>{% for item in timeline %}<a class="revision-tab {% if selected.pk == item.revision.pk %}selected{% endif %}" href="?revision={{ item.revision.pk }}" title="{% if item.parent_number %}Revision {{ item.parent_number }}{% else %}Original{% endif %} から作成">Revision {{ item.number }} <small>← {% if item.parent_number %}{{ item.parent_number }}{% else %}Original{% endif %}</small></a>{% endfor %}</div>
+</section>
+{% endif %}
+{% if selected %}
+<aside class="saved-generation-context result-request"><strong>このRevisionへの変更指示</strong><br>{{ selected.request_text }}<br><span class="muted">{{ selected.created_at|date:"Y.m.d H:i" }} · {{ selected.provider }} / {{ selected.model_name }} · {{ selected.api_style }}</span></aside>
+{% endif %}
+<form id="refine-form">
+  {% csrf_token %}
+  <div class="input-grid">
+    <section class="input-panel">
+      <div class="panel-heading"><label for="original-text"><span class="step-index">01</span><span id="source-label">{% if selected %}ベースレシピ{% else %}元レシピ{% endif %}</span></label>{% if not recipe %}<button class="text-button" id="sample-button" type="button">サンプルを入力</button>{% else %}<span class="small-tag">保存済み</span>{% endif %}</div>
+      <p class="panel-description" id="source-description">{% if recipe %}選択した履歴をもとに、新しいレシピを作ります。{% else %}材料と作り方を、そのまま貼り付けてください。{% endif %}</p>
+      <textarea id="original-text" name="original_text" maxlength="30000" required {% if recipe %}readonly{% endif %} placeholder="例：カレー 4人前&#10;&#10;材料&#10;玉ねぎ 2個、牛肉 300g…&#10;&#10;作り方&#10;1. 野菜を切る&#10;2. 牛肉を炒める…">{{ source_text }}</textarea>
+      <div class="input-footer"><span id="source-hint">{% if recipe %}履歴はそのまま保存されます{% else %}テキストを自由に入力できます{% endif %}</span><span><span id="original-count">0</span> / 30,000</span></div>
+    </section>
+    <section class="input-panel request-panel">
+      <div class="panel-heading"><label for="request-text"><span class="step-index">02</span>変更したい内容</label><svg class="subtle-icon"><use href="#i-spark"/></svg></div>
+      <p class="panel-description">変えたい材料や条件を、まとめて教えてください。</p>
+      <textarea id="request-text" name="request_text" maxlength="6000" required placeholder="例：玉ねぎがありません。&#10;牛肉を豚肉に変更してください。&#10;2人前にして、辛さを少し抑えたいです。"></textarea>
+      <div class="input-footer"><span>材料の置き換え・人数・味付け・調理器具など</span><span><span id="request-count">0</span> / 6,000</span></div>
+    </section>
+  </div>
+  <div class="action-row"><p><svg><use href="#i-leaf"/></svg>元のレシピを大切に、必要なところだけ調整します。</p><button class="primary-button" id="refine-button" type="submit"><svg><use href="#i-spark"/></svg><span>リファイン</span><svg><use href="#i-arrow"/></svg></button></div>
+</form>
+<div id="loading" class="notice loading" role="status" hidden><span class="spinner"></span>レシピをリファインしています… <span class="muted">材料のバランスや調理工程を調整中です。</span></div>
+<section id="confirmation" class="confirmation-card" aria-labelledby="confirmation-title" hidden>
+  <div class="eyebrow">LET’S CHECK BEFORE WE COOK</div><h2 id="confirmation-title">続行する前に、確認してください</h2><div id="confirmation-content"></div>
+  <div class="confirmation-actions"><button id="confirm-button" type="button" class="primary-button">この条件で続行</button><button id="edit-button" type="button" class="secondary-button">変更内容を修正</button></div>
+</section>
+<section id="result-section" aria-labelledby="result-heading">
+  <div class="section-heading"><h2 id="result-heading">リファイン結果</h2><span id="result-status" class="muted">あなたのひと皿が、ここに。</span></div>
+  <div id="result-placeholder" class="empty-result"><span class="empty-icon"><svg><use href="#i-spark"/></svg></span><h3>レシピの新しい可能性を、見つけよう。</h3><p>元レシピと変更したい内容を入力して「リファイン」を押してください。<br>材料・作り方・変更の理由を、まとめてお届けします。</p><div class="empty-steps"><span>01 レシピを貼り付け</span><span>→</span><span>02 希望を入力</span><span>→</span><span>03 新しいひと皿へ</span></div></div>
+  <article id="result" hidden></article>
+</section>
+{{ bootstrap|json_script:'recipe-bootstrap' }}
+{% endblock %}
+{% block scripts %}<script type="module" src="{% static 'recipes/js/refine.js' %}"></script>{% endblock %}

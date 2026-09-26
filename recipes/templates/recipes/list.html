@@ -1,0 +1,17 @@
+{% extends 'recipes/base.html' %}
+{% block breadcrumb %}{% if favorites %}お気に入り{% else %}レシピの履歴{% endif %}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">YOUR RECIPE COLLECTION</div><h1>{% if favorites %}また作りたい、あのひと皿。{% else %}おいしい工夫の、積み重ね。{% endif %}</h1><p>{% if favorites %}お気に入りのレシピを、いつでもここから。{% else %}これまでのレシピと、リファインの記録。{% endif %}</p></div><span class="collection-count">{{ page_obj.paginator.count }} recipes</span></div>
+{% csrf_token %}
+<div class="recipe-grid">
+{% for recipe in page_obj %}
+<article class="recipe-card">
+  <div class="card-top"><span class="recipe-mark"><svg><use href="#i-leaf"/></svg></span><button class="favorite-button" data-favorite-id="{{ recipe.pk }}" aria-pressed="{{ recipe.is_favorite|yesno:'true,false' }}" aria-label="{{ recipe.title }}のお気に入りを切り替え">{% if recipe.is_favorite %}★{% else %}☆{% endif %}</button></div>
+  <a class="recipe-card-link" href="{% url 'recipes:detail' recipe.pk %}"><h2>{{ recipe.title }}</h2><p>{{ recipe.original_text|truncatechars:100 }}</p><div class="card-footer"><span>{{ recipe.updated_at|date:'Y.m.d' }}</span><span>{{ recipe.revision_count }} revisions <span aria-hidden="true">↗</span></span></div></a>
+</article>
+{% empty %}
+<div class="empty-result collection-empty"><span class="empty-icon"><svg><use href="{% if favorites %}#i-star{% else %}#i-clock{% endif %}"/></svg></span><h2>{% if favorites %}お気に入りはまだありません{% else %}最初のひと皿を、ここから。{% endif %}</h2><p>{% if favorites %}履歴の☆を押すと、ここに保存されます。{% else %}リファインに成功したレシピは、自動で履歴に保存されます。{% endif %}</p><a href="{% url 'recipes:index' %}" class="secondary-button">レシピをリファインする</a></div>
+{% endfor %}
+</div>
+{% if page_obj.has_other_pages %}<nav class="pagination" aria-label="ページ切り替え">{% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">← 前へ</a>{% endif %}<span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">次へ →</a>{% endif %}</nav>{% endif %}
+{% endblock %}

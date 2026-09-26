@@ -1,0 +1,25 @@
+# 非機密設定だけを保存。APIキーは .env に設定してください。
+provider: openai
+
+openai:
+  model: gpt-5.6
+  api_style: responses
+  # モデルが temperature に対応する場合のみ true に変更
+  send_temperature: false
+  structured_output: json_schema
+
+local:
+  # Django (8000) とポートが重複しないよう vLLM は 8001 を使用
+  base_url: http://localhost:8001/v1
+  model: Qwen3.8-27B-NVFP4
+  api_style: chat_completions
+  send_temperature: true
+  # json_schema 非対応サーバーでは json_object または prompt を指定
+  structured_output: json_schema
+
+generation:
+  timeout_seconds: 120
+  temperature: 0.2
+
+retry:
+  invalid_response_max_retries: 1

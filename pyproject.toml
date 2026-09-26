@@ -1,0 +1,23 @@
+[project]
+name = "recipe-refiner"
+version = "0.1.0"
+description = "元レシピを大切に、料理として自然にリファインするローカルアプリ"
+requires-python = ">=3.12"
+dependencies = [
+  "Django>=5.2,<5.3",
+  "openai>=2.0,<3",
+  "pydantic>=2.11,<3",
+  "PyYAML>=6.0,<7",
+  "python-dotenv>=1.1,<2",
+  "whitenoise>=6.9,<7",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.12,<1"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

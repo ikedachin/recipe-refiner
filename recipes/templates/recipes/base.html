@@ -1,0 +1,46 @@
+{% load static %}
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'recipes/css/app.css' %}">
+  <script type="module" src="{% static 'recipes/js/app.js' %}"></script>
+</head>
+<body>
+<svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M19 4C8 2 3 8 6 14c3 6 12 4 13-10Z"/><path d="m5 21 9-12M9 15l-1-4m4 1 4 1"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.4-5.7-3-5.7 3 1.1-6.4-4.6-4.5 6.4-.9Z"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+</svg>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="{% url 'recipes:index' %}"><span class="brand-icon"><svg><use href="#i-leaf"/></svg></span><span>{{ app_name }}<small>いつもの料理に、ちょうどいい変化。</small></span></a>
+    <a class="new-recipe" href="{% url 'recipes:index' %}"><svg><use href="#i-plus"/></svg>新しいリファイン</a>
+    <span class="nav-label">MY KITCHEN</span>
+    <nav aria-label="メインナビゲーション">
+      <a class="{% if nav == 'editor' %}active{% endif %}" href="{% url 'recipes:index' %}"><svg><use href="#i-spark"/></svg>レシピをリファイン</a>
+      <a class="{% if nav == 'history' %}active{% endif %}" href="{% url 'recipes:history' %}"><svg><use href="#i-clock"/></svg>レシピの履歴</a>
+      <a class="{% if nav == 'favorites' %}active{% endif %}" href="{% url 'recipes:favorites' %}"><svg><use href="#i-star"/></svg>お気に入り</a>
+    </nav>
+    <div class="sidebar-note"><svg><use href="#i-leaf"/></svg><p>レシピのよさは、そのままに。<br>今のあなたに合うひと皿へ。</p></div>
+    <div class="local-label"><span class="status-dot"></span>パーソナル・キッチン</div>
+  </aside>
+  <div class="main-shell">
+    <header class="topbar"><span>{% block breadcrumb %}レシピをリファイン{% endblock %}</span><div class="llm-badge" title="settings/llm.yaml で設定できます"><span class="status-dot"></span>LLM: {{ llm_label }}</div></header>
+    <main>
+      {% if config_error %}<div class="notice error" role="alert">{{ config_error }}</div>{% endif %}
+      <div id="global-error" class="notice error" role="alert" hidden></div>
+      {% block content %}{% endblock %}
+    </main>
+    <footer>少しの工夫で、もっとあなたらしい料理に。<span>{{ app_name }}</span></footer>
+  </div>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>
