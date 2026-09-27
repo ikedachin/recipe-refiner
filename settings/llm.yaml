@@ -1,5 +1,5 @@
 # 非機密設定だけを保存。APIキーは .env に設定してください。
-provider: openai
+provider: local
 
 openai:
   model: gpt-5.6
@@ -10,16 +10,18 @@ openai:
 
 local:
   # Django (8000) とポートが重複しないよう vLLM は 8001 を使用
-  base_url: http://localhost:8001/v1
-  model: Qwen3.8-27B-NVFP4
+  # base_url: http://localhost:8001/v1
+  base_url: http://127.0.0.1:11434/v1
+  model: gemma4:latest
   api_style: chat_completions
   send_temperature: true
   # json_schema 非対応サーバーでは json_object または prompt を指定
   structured_output: json_schema
 
 generation:
-  timeout_seconds: 120
+  timeout_seconds: 300
   temperature: 0.2
 
 retry:
   invalid_response_max_retries: 1
+  
