@@ -2,9 +2,20 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+- このリポジトリは`GPT-6 Astra時代のCodex ― 基礎・セキュリティ・実践活用を学ぶ`というイベントで活用したアプリです。実運用などは考慮されていませんので、ご理解ください。
+
+
 いつものレシピを、今の気分に。元レシピと変更希望を入力すると、LLMが料理として成立するように材料・分量・水分・油脂・味付け・火入れ・工程・器具を見直します。変更の必要がない部分は維持します。
 
 個人がローカルで使うためのDjangoアプリです。ログインは不要。Python 3.12以上、Django 5.2 LTS、SQLite、Django Templates、HTML/CSS/Vanilla JavaScriptで構成し、Node.js/npmやフロントエンドのビルド工程、Dockerは使いません。
+
+現在の `settings/llm.yaml` は、作者がOllama向けに変更した設定です。ローカルのOllamaで `gemma4:latest` を使用します。変更箇所と設定の意味は、後述の「LLM設定」で説明しています。
+
+## このアプリの作成経緯
+
+Recipe Refinerは、ChatGPTとの対話で要件を整理し、そこで作成した実装プロンプトをCodexに渡して開発しました。アイデアの相談、30項目の質問への回答、初回プロンプトの作成を経て、YAMLでOpenAI APIとローカルLLMを切り替える要件を追加しています。
+
+対話の記録と各プロンプトは「作成プロンプト」フォルダに保存しています。詳しい流れは[作成経緯のREADME](作成プロンプト/README.md)、元のやり取りは[ChatGPTの共有チャット](https://chatgpt.com/share/6abe5ce0-63fc-83e8-87b1-f7905928c23e)を参照してください。
 
 ## 主な機能と画面
 
@@ -22,9 +33,9 @@
 
 - Python 3.12以上
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
-- OpenAI APIキー、または起動済みのOpenAI互換LLMサーバー
+- [Ollama](https://ollama.com/)と、Ollamaに取得済みの `gemma4:latest` モデル（現在の設定）
+- OpenAI APIに切り替える場合のみ、利用可能なモデルとOpenAI APIキー
 
-macOSでHomebrewを使う場合、uvは `brew install uv` で導入できます。Pythonがなければ `uv python install 3.12` で導入できます。
 
 このディレクトリで実行します。
 
@@ -33,9 +44,11 @@ uv sync
 cp .env.example .env
 ```
 
+ローカルで試す場合は `.env.example` を `.env` にコピーした状態で利用できます。現在のOllama設定ではOpenAI APIキーは不要です。`DJANGO_DEBUG=True` の開発用途では、秘密鍵が未設定または `change-me` の場合、アプリが開発用の鍵を使用します。`DJANGO_DEBUG=False` にする場合は固有の秘密鍵が必要です。
+
 `uv sync` は `pyproject.toml` と `uv.lock` に従って `.venv` を作成します。仮想環境の手動activateは不要です。以降のコマンドは `uv run` で実行します。共有キャッシュへ書き込めない環境では `UV_CACHE_DIR=/tmp/recipe-refiner-uv-cache uv sync` のように書き込み可能なキャッシュを指定できます。
 
-`.env` を編集してください（既存の `.env` がある場合、コピーで上書きしないでください）。
+必要に応じて `.env` を編集します（既存の `.env` がある場合、コピーで上書きしないでください）。以下は設定項目の例です。
 
 ```dotenv
 DJANGO_SECRET_KEY=ここに固有のランダム文字列を設定
@@ -45,23 +58,29 @@ OPENAI_API_KEY=
 LOCAL_LLM_API_KEY=dummy
 ```
 
-秘密鍵の生成例:
+固有の秘密鍵を設定する場合の生成例:
 
 ```bash
 uv run python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
 ```
 
 - OpenAIを使う場合は `OPENAI_API_KEY` を設定します。
-- Localを使う場合はOpenAIのキーは不要です。サーバーに認証がある場合のみ `LOCAL_LLM_API_KEY` を変更します。未設定ならSDKの要件を満たすため `dummy` を渡します。
+- 現在のローカルOllamaでは `OPENAI_API_KEY` は不要です。`LOCAL_LLM_API_KEY=dummy` はSDKが要求するキーの値を満たすためのもので、OpenAIへの認証には使いません。通常のローカルOllamaではこの値は無視されます。認証付きのOpenAI互換サーバーに変更する場合のみ、そのサーバー用のキーを指定します。詳しくは[Ollama公式のOpenAI互換APIの説明](https://docs.ollama.com/api/openai-compatibility)を参照してください。
 - Provider、モデル名、API方式、接続先は `.env` に書きません。
 - `.env`、SQLite、`.venv`、収集済み静的ファイルは `.gitignore` で除外済みです。
 
-## LLM設定: YAMLが唯一の設定元
+## LLM設定: 作者がOllama向けに変更したYAML
 
-`settings/llm.yaml` を編集します。秘密情報は含めないでください。
+ChatGPTで作成した実装プロンプトでは、OpenAI APIとローカルLLMをYAMLで切り替える構成を指定していました。実装後、作者自身が `settings/llm.yaml` をOllamaで使えるように変更しました。現在のREADMEは、この変更後のファイルに合わせています。
+
+LLMの非機密設定は `settings/llm.yaml` にまとめています。APIキーなどの秘密情報は `.env` に分けます。
+
+### 現在の設定
+
+コメントを省いた現在の `settings/llm.yaml` は以下のとおりです。
 
 ```yaml
-provider: openai
+provider: local
 
 openai:
   model: gpt-5.6
@@ -70,39 +89,81 @@ openai:
   structured_output: json_schema
 
 local:
-  base_url: http://localhost:8001/v1
-  model: Qwen3.8-27B-NVFP4
+  base_url: http://127.0.0.1:11434/v1
+  model: gemma4:latest
   api_style: chat_completions
   send_temperature: true
   structured_output: json_schema
 
 generation:
-  timeout_seconds: 120
+  timeout_seconds: 300
   temperature: 0.2
 
 retry:
   invalid_response_max_retries: 1
 ```
 
-上記モデル名は依頼仕様の設定例です。モデルの提供状況、アカウントでの利用可否、ローカルに配備したモデルIDまでは確認していません。実際に利用できるモデル名をYAMLに指定してください。
+`provider: local` により、現在は `local` セクションのOllama設定が選択されます。`openai` セクションは切り替え用に残っており、現在の生成には使用されません。設定ローダーは両セクションを検証するため、Ollamaだけを使う場合も `openai` セクションは残してください。
 
-### OpenAI / Localの切り替え
+### 作者による変更内容
 
-**OpenAI API**を使うには:
+従来のREADMEに掲載していたOpenAI / vLLM向けの設定例と、現在のファイルの違いは次のとおりです。
+
+| 設定項目 | 従来のREADMEの設定例 | 現在のOllama用設定 | 変更の意味 |
+| --- | --- | --- | --- |
+| `provider` | `openai` | `local` | ローカルLLM用のProviderを選択し、Ollamaへ接続する |
+| `local.base_url` | `http://localhost:8001/v1` | `http://127.0.0.1:11434/v1` | vLLM向けの接続先を、同じPC上のOllamaのOpenAI互換APIへ変更する |
+| `local.model` | `Qwen3.8-27B-NVFP4` | `gemma4:latest` | Ollamaで使用するモデル名に変更する |
+| `generation.timeout_seconds` | `120` | `300` | ローカルでの生成に時間がかかる場合に備え、各API通信のタイムアウトを120秒から300秒（5分）へ延長する |
+
+`local.api_style: chat_completions`、`local.send_temperature: true`、`local.structured_output: json_schema`、`generation.temperature: 0.2`、`retry.invalid_response_max_retries: 1` は、従来のREADMEの設定例から維持しています。それぞれの役割は次のとおりです。
+
+- **`api_style: chat_completions`**: Ollamaの `/v1/chat/completions` に、元レシピと変更希望を送信します。このアプリはOpenAI Python SDKを通じてOllamaのOpenAI互換APIを利用します。[Ollama公式ドキュメント](https://docs.ollama.com/api/openai-compatibility)
+- **`send_temperature: true` と `temperature: 0.2`**: 生成時にtemperatureを送信し、低めの値で出力のばらつきを抑える設定です。
+- **`structured_output: json_schema`**: アプリが定義したJSON SchemaをAPIへ渡し、材料・手順・変更点などを構造化したJSONとして生成させます。受信後もPydanticで検証します。
+- **`invalid_response_max_retries: 1`**: 空の出力や形式が不正な出力に対し、1回だけ再生成を試みます。初回を含めて最大2回の生成となります。API接続エラーやタイムアウトはこの再試行の対象に含まれません。
+
+300秒は各API通信のタイムアウトです。不正な出力の再生成が発生すると、操作全体の待ち時間は300秒を超える場合があります。
+
+YAML内には、以前のvLLM用のURLとポート説明がコメントとして残っています。`# base_url: http://localhost:8001/v1` は無効で、実際に使う接続先は `http://127.0.0.1:11434/v1` です。
+
+### Ollamaで使う準備
+
+Ollamaをインストールし、ローカルサーバーを起動してください。デスクトップアプリなどで既に起動している場合はそのまま利用できます。手動で起動する場合は、別のターミナルで次を実行します。
+
+```bash
+ollama serve
+```
+
+使用できるモデルを確認します。
+
+```bash
+ollama list
+```
+
+`gemma4:latest` が未取得の場合は、次のコマンドで取得します。
+
+```bash
+ollama pull gemma4:latest
+```
+
+別のモデルを使う場合は、`ollama list` に表示されるモデル名に合わせて `local.model` を変更してください。現在の接続先はローカルOllamaのポート11434で、Djangoの既定ポート8000と分かれています。Ollamaのコマンドについては[公式CLIの説明](https://docs.ollama.com/cli)も参照してください。
+
+Ollamaとモデルを準備したら、後述の「マイグレーション・起動」の手順でDjangoを起動します。
+
+### OpenAI APIや別のローカルLLMへ切り替える場合
+
+現在のOllama設定を使う場合は `provider: local` のままにします。別のOpenAI互換サーバーを使う場合は、`local.base_url` と `local.model` をそのサーバーに合わせて変更します。
+
+OpenAI APIへ切り替える場合は、次のように変更します。
 
 ```yaml
 provider: openai
 ```
 
-`.env` に `OPENAI_API_KEY` を設定し、Djangoを再起動します。公式OpenAI Python SDKで、標準ではResponses APIを呼びます。
+そのうえで `openai.model` を利用可能なモデル名に設定し、`.env` に `OPENAI_API_KEY` を設定してDjangoを再起動してください。YAMLに残っている `gpt-5.6` は当初の設定例なので、利用するモデルに合わせて見直してください。`api_style: responses` の場合はResponses APIを呼びます。
 
-**vLLMなどのローカルLLM**を使うには:
-
-```yaml
-provider: local
-```
-
-`local.base_url` と `local.model` をサーバーに合わせて設定し、Djangoを再起動します。認証なしならキーの変更は不要です。両方の接続先を一度設定すれば、以降は **`provider` の1行を書き換えるだけ** で切り替わります。ブラウザには切り替え機能を設けていません。
+両方の接続先を設定済みであれば、`provider` の1行でOllamaとOpenAI APIを切り替えられます。画面には現在のProviderとモデルを表示します。
 
 YAMLは画面表示と生成リクエストごとに専用ローダーで読み込みます。そのためYAMLの編集は次の操作から反映されますが、環境変数の変更も含めて確実に適用するには再起動してください。各生成では一つの設定スナップショットを使用します。
 
@@ -124,11 +185,11 @@ YAMLは画面表示と生成リクエストごとに専用ローダーで読み�
 
 `temperature` を受け付けないモデルがあるため、OpenAIの例では送信を無効にしています。対応モデルを使う場合は `send_temperature: true` にしてください。未対応パラメーターをエラー後に勝手に変えて再送する処理は行いません。
 
-構造化出力は [OpenAIの公式Structured Outputs仕様](https://developers.openai.com/api/docs/guides/structured-outputs) を使用します。LocalでJSON Schemaが未対応なら `json_object`、形式指定パラメーターも未対応なら `prompt` に変更できます。どの方式でも、プロンプトでJSON schemaを指定し、受信後のPydantic検証は必ず実行します。
+現在のOllama設定では、OpenAI互換APIへJSON Schemaを渡す `json_schema` 方式を使用します。Ollamaの構造化出力については[公式の説明](https://docs.ollama.com/capabilities/structured-outputs)を参照してください。利用するサーバーでJSON Schemaが未対応なら `json_object`、形式指定パラメーターも未対応なら `prompt` に変更できます。どの方式でも、プロンプトでJSON Schemaを指定し、受信後のPydantic検証は必ず実行します。
 
-### vLLMの設定例
+### 別のローカルLLMを使う場合: vLLMの設定例
 
-vLLMは別途、対応するGPU環境で起動してください。このアプリの依存関係には含めていません。配備済みモデルを使う概念例:
+現在の設定はOllama用です。vLLMへ変更する場合は、別途、対応するGPU環境で起動してください。このアプリの依存関係には含めていません。配備済みモデルを使う概念例:
 
 ```bash
 vllm serve /path/to/your/model --served-model-name recipe-local --host 127.0.0.1 --port 8001
@@ -148,10 +209,13 @@ YAMLの他のセクションは残してください。Djangoの既定ポート8
 
 ## マイグレーション・起動
 
+現在の設定では、先にOllamaの起動と `gemma4:latest` の準備を済ませてください。初回セットアップ後は、プロジェクトのディレクトリで次のコマンドを実行します。データベースのマイグレーションを適用してから、開発サーバーを起動します。
+
 ```bash
-uv run python manage.py migrate
-uv run python manage.py runserver
+./start.sh
 ```
+
+ポートなどの開発サーバー引数も渡せます（例: `./start.sh 8080`）。
 
 [http://127.0.0.1:8000/](http://127.0.0.1:8000/) を開きます。「サンプルを入力」で、牛肉カレーから2人前のポークカレーへ変える入力例を試せます。サンプルボタンは入力を埋めるだけで、生成にはLLM接続が必要です。
 
@@ -194,7 +258,7 @@ uv run ruff format --check .
 - 初回生成、確認・期限・改ざん、再リファイン、Originalと過去Revisionからの分岐
 - 履歴、モデル変更後の履歴保持、CSRF、HTML escape、DBロールバック、DEBUG=Falseのエラー
 
-実際のLLMへの接続と生成品質は、キーまたはローカルサーバーを設定して別途確認してください。通常のテストでは課金APIもローカルLLMも呼びません。
+現在のOllamaへの接続と `gemma4:latest` の生成品質は、Ollamaを起動して実際の画面から別途確認してください。OpenAI APIに切り替えた場合も、接続先に応じて確認してください。通常のテストでは課金APIもローカルLLMも呼びません。
 
 ## ディレクトリ構成
 
@@ -258,11 +322,13 @@ fetch + CSRF
   → refinement (入力検証 / ベースRevision選択)
   → load_llm_config (YAML → immutable Pydanticモデル)
   → Factory → OpenAIProvider または OpenAICompatibleProvider
-  → SDKProvider (Responses / Chat Completions)
+  → SDKProvider (現在のOllama設定は Chat Completions)
   → JSON解析 + Pydantic + 状態と工程の検証
   → needs_confirmation: 確認表示用の署名付きトークンを返す
   → ok: Recipe/Revisionをatomic保存 → HTMLとして結果表示
 ```
+
+現在の設定では `OpenAICompatibleProvider` が選択され、OpenAI Python SDKから `http://127.0.0.1:11434/v1/chat/completions` へリクエストを送ります。Provider名が `local`、SDK名がOpenAIでも、生成の接続先はローカルのOllamaです。
 
 確認トークンは元入力・変更希望・親Revision・確認内容に紐づき、有効期限は30分です。続行時にクライアントから別の入力を渡しても置き換えません。トークンは署名付きで暗号化ではありません。ログインの代わりにはなりません。入力変更後は再度リファインして新しい確認を取得します。
 
@@ -287,9 +353,9 @@ POSTのリファイン入力は `application/json`。すべてのPOSTにDjango�
 | --- | --- |
 | YAMLが読めない / 設定が不正 | `settings/llm.yaml` の存在、構文、表示された項目 |
 | APIキーが未設定 / 認証失敗 | `.env` のキー、再起動、利用権限 |
-| LLMに接続できない | vLLMの起動、base_url、ポート番号 |
+| LLMに接続できない | Ollamaの起動、`local.base_url`、ポート11434（別サーバーへ変更した場合はその接続先） |
 | タイムアウト | サーバー負荷、モデル、YAMLのtimeout |
-| LLM APIエラー | model名、API方式、構造化出力/temperatureの対応 |
+| LLM APIエラー | `ollama list` でモデル名を確認。`gemma4:latest` の取得状況、API方式、構造化出力/temperatureの対応 |
 | 解析できない | モデルのJSON能力、構造化出力設定、入力内容を見直して再実行 |
 | データベースエラー | migrate済みか、ファイルの書き込み権限、ディスク空き容量 |
 | 確認の期限切れ | もう一度リファインして確認内容を取得 |
